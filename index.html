@@ -533,6 +533,10 @@
             <i class="fa-solid fa-arrows-rotate"></i>
             <span>Sinkron Data</span>
           </button>
+          <button onclick="logoutAdmin()" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center space-x-1.5" title="Kunci dan keluar dari sesi guru">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span>Keluar Sesi Guru</span>
+          </button>
           <button onclick="navigate('home')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-semibold transition">
             Tutup Panel
           </button>
@@ -550,17 +554,17 @@
           <select id="adminFilterClass" onchange="renderAdminTable()" class="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-bold text-slate-700 focus:outline-none">
             <option value="ALL">Semua Rombel TKJ</option>
             <option value="XI TKJ 1">XI TKJ 1</option>
-          <button onclick="refreshCloudDataManual()" class="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition" title="Sinkronkan data terbaru">
-            <i class="fa-solid fa-arrows-rotate"></i>
-            <span>Sinkron Data</span>
-          </button>
-          <button onclick="logoutAdmin()" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center space-x-1.5" title="Kunci dan keluar dari sesi guru">
-            <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            <span>Keluar Sesi Guru</span>
-          </button>
-          <button onclick="navigate('home')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-semibold transition">
-            Tutup Panel
-          </button>
+            <option value="XI TKJ 2">XI TKJ 2</option>
+            <option value="XI TKJ 3">XI TKJ 3</option>
+          </select>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs text-slate-400 font-semibold block">Tuntas Semua TP (≥ 75)</span>
+          <span id="adminCompleteCount" class="text-2xl font-bold text-emerald-600 mt-1 block">0 Siswa</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs text-slate-400 font-semibold block">Rata-rata Final Exam</span>
+          <span id="adminAvgFinalExam" class="text-2xl font-bold text-sky-600 mt-1 block">0.0</span>
         </div>
       </div>
 
@@ -622,7 +626,7 @@
         <h3 class="text-base font-bold text-slate-900">Portal Guru Pengampu</h3>
         <p class="text-xs text-slate-500 mt-1">Bu Fitri Ainun Rosita, S.Pd.<br><span class="text-[11px] text-slate-400">Khusus Pengajar & Administrator</span></p>
       </div>
-      <input type="password" id="adminPinInput" placeholder="Ketik PIN..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-center font-mono text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-sky-500">
+      <input type="password" id="adminPinInput" onkeydown="if(event.key==='Enter') verifyAdminPIN()" placeholder="Ketik PIN..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-center font-mono text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-sky-500">
       <div class="flex space-x-2">
         <button onclick="toggleAdminModal()" class="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">Batal</button>
         <button onclick="verifyAdminPIN()" class="w-1/2 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow transition">Buka Portal</button>
@@ -3118,7 +3122,7 @@ function doPost(e) {
     }
 
     function verifyAdminPIN() {
-      const pin = document.getElementById("adminPinInput").value;
+      const pin = document.getElementById("adminPinInput").value.trim();
       if (pin === "guru123" || pin === "kikblitar" || pin === "1992" || pin === "123456") {
         sessionStorage.setItem("kik_admin_authenticated", "true");
         toggleAdminModal();
