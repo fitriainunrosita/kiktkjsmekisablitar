@@ -12,6 +12,104 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
+  <!-- Firebase SDK Modular Scripts -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Global Environment Config
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'kik-smkislam1-blitar';
+    let firebaseConfig = null;
+    try {
+      if (typeof __firebase_config !== 'undefined') {
+        firebaseConfig = JSON.parse(__firebase_config);
+      }
+    } catch (e) {
+      console.warn("Firebase config parse fallback:", e);
+    }
+
+    let db = null;
+    let auth = null;
+    let currentAuthUser = null;
+
+    if (firebaseConfig) {
+      try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        const initAuthPromise = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token)
+          ? signInWithCustomToken(auth, __initial_auth_token)
+          : signInAnonymously(auth);
+
+        initAuthPromise.then((cred) => {
+          currentAuthUser = cred.user;
+          window.cloudDbReady = true;
+          window.dispatchEvent(new CustomEvent('cloud-sync-ready'));
+        }).catch((err) => {
+          console.warn("Auth initialization fallback:", err);
+          signInAnonymously(auth).then((cred) => {
+            currentAuthUser = cred.user;
+            window.cloudDbReady = true;
+            window.dispatchEvent(new CustomEvent('cloud-sync-ready'));
+          }).catch(e => console.error("Final auth failure:", e));
+        });
+      } catch (err) {
+        console.error("Firebase startup error:", err);
+      }
+    }
+
+    // Expose helpers safely to global window
+    window.cloudServices = {
+      isReady: () => !!(db && currentAuthUser),
+      getPublicColRef: () => {
+        if (!db) return null;
+        return collection(db, 'artifacts', appId, 'public', 'data', 'students_registry');
+      },
+      getStudentDocRef: (studentKey) => {
+        if (!db) return null;
+        return doc(db, 'artifacts', appId, 'public', 'data', 'students_registry', studentKey);
+      },
+      listenToAllStudents: (onData, onError) => {
+        if (!db) return () => {};
+        const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'students_registry');
+        return onSnapshot(colRef, (snapshot) => {
+          const result = {};
+          snapshot.forEach((d) => {
+            result[d.id] = d.data();
+          });
+          onData(result);
+        }, (err) => {
+          console.error("Live sync error:", err);
+          if (onError) onError(err);
+        });
+      },
+      saveStudentCloud: async (studentKey, studentData) => {
+        if (!db) return false;
+        try {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'students_registry', studentKey);
+          await setDoc(docRef, studentData, { merge: true });
+          return true;
+        } catch (e) {
+          console.error("Error saving student record:", e);
+          return false;
+        }
+      },
+      deleteStudentCloud: async (studentKey) => {
+        if (!db) return false;
+        try {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'students_registry', studentKey);
+          await deleteDoc(docRef);
+          return true;
+        } catch (e) {
+          console.error("Error deleting student record:", e);
+          return false;
+        }
+      }
+    };
+  </script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -423,6 +521,18 @@
             <i class="fa-solid fa-file-excel"></i>
             <span>Download Rekap Nilai (CSV)</span>
           </button>
+          <button onclick="toggleSheetConfigModal()" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition" title="Koneksi Google Spreadsheet">
+            <i class="fa-solid fa-table"></i>
+            <span>Koneksi Spreadsheet</span>
+          </button>
+          <button onclick="syncAllToSpreadsheet()" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition" title="Kirim semua data siswa ke Google Spreadsheet">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Kirim ke Spreadsheet</span>
+          </button>
+          <button onclick="refreshCloudDataManual()" class="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition" title="Sinkronkan data terbaru">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Sinkron Data</span>
+          </button>
           <button onclick="navigate('home')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-semibold transition">
             Tutup Panel
           </button>
@@ -440,17 +550,17 @@
           <select id="adminFilterClass" onchange="renderAdminTable()" class="mt-1 w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-bold text-slate-700 focus:outline-none">
             <option value="ALL">Semua Rombel TKJ</option>
             <option value="XI TKJ 1">XI TKJ 1</option>
-            <option value="XI TKJ 2">XI TKJ 2</option>
-            <option value="XI TKJ 3">XI TKJ 3</option>
-          </select>
-        </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <span class="text-xs text-slate-400 font-semibold block">Tuntas Semua TP</span>
-          <span id="adminCompleteCount" class="text-2xl font-bold text-emerald-600 mt-1 block">0 Siswa</span>
-        </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <span class="text-xs text-slate-400 font-semibold block">Rata-rata Final Exam</span>
-          <span id="adminAvgFinalExam" class="text-2xl font-bold text-sky-600 mt-1 block">0.0</span>
+          <button onclick="refreshCloudDataManual()" class="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition" title="Sinkronkan data terbaru">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Sinkron Data</span>
+          </button>
+          <button onclick="logoutAdmin()" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center space-x-1.5" title="Kunci dan keluar dari sesi guru">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span>Keluar Sesi Guru</span>
+          </button>
+          <button onclick="navigate('home')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-semibold transition">
+            Tutup Panel
+          </button>
         </div>
       </div>
 
@@ -516,6 +626,114 @@
       <div class="flex space-x-2">
         <button onclick="toggleAdminModal()" class="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">Batal</button>
         <button onclick="verifyAdminPIN()" class="w-1/2 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow transition">Buka Portal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL PENGATURAN GOOGLE SPREADSHEET ================= -->
+  <div id="sheetConfigModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 text-xs sm:text-sm">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center space-x-2">
+          <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-table"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Integrasi Google Spreadsheet</h3>
+            <p class="text-xs text-slate-500">Rekam nilai otomatis langsung ke akun Google Drive Bu Fitri</p>
+          </div>
+        </div>
+        <button onclick="toggleSheetConfigModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto py-3 space-y-4 custom-scroll pr-1">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Google Apps Script Web App URL</label>
+          <input type="url" id="sheetWebhookUrlInput" placeholder="https://script.google.com/macros/s/.../exec" 
+            class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <p class="text-[11px] text-slate-400 mt-1">Tempelkan URL Web App hasil deploy Apps Script Anda di sini.</p>
+        </div>
+
+        <!-- Panduan Singkat Bu Fitri -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+          <div class="font-bold text-slate-800 flex items-center space-x-1.5">
+            <i class="fa-solid fa-circle-question text-emerald-600"></i>
+            <span>Cara Menghubungkan ke Google Spreadsheet (1 Menit):</span>
+          </div>
+          <ol class="list-decimal list-inside space-y-1.5 text-[11px] text-slate-600 leading-relaxed">
+            <li>Buka <b>Google Spreadsheet baru</b> di Google Drive Anda.</li>
+            <li>Klik menu <b>Ekstensi (Extensions)</b> &gt; <b>Apps Script</b>.</li>
+            <li>Hapus semua kode di sana, lalu salin dan tempelkan kode di bawah ini:</li>
+          </ol>
+
+          <div class="relative">
+            <pre class="bg-slate-900 text-emerald-400 p-3 rounded-xl text-[10px] font-mono overflow-x-auto select-all max-h-36">
+function doPost(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getActiveSheet();
+  
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["Timestamp", "Nama Siswa", "Kelas", "TP 1.1", "TP 1.2", "TP 1.3", "TP 1.4", "TP 2.1(a)", "TP 2.1(b)", "Final Exam", "Status KKM"]);
+    sheet.getRange(1, 1, 1, 11).setFontWeight("bold").setBackground("#d1e7dd");
+  }
+  
+  var data = JSON.parse(e.postData.contents);
+  var action = data.action;
+  
+  if (action === "sync_student" || action === "quiz_submitted") {
+    var s = data.student;
+    var name = s.name;
+    var rombel = s.rombel;
+    var s1 = (s.scores && s.scores["tp1_1"]) ? s.scores["tp1_1"].score : "-";
+    var s2 = (s.scores && s.scores["tp1_2"]) ? s.scores["tp1_2"].score : "-";
+    var s3 = (s.scores && s.scores["tp1_3"]) ? s.scores["tp1_3"].score : "-";
+    var s4 = (s.scores && s.scores["tp1_4"]) ? s.scores["tp1_4"].score : "-";
+    var s5 = (s.scores && s.scores["tp2_1a"]) ? s.scores["tp2_1a"].score : "-";
+    var s6 = (s.scores && s.scores["tp2_1b"]) ? s.scores["tp2_1b"].score : "-";
+    var fe = s.finalExam ? s.finalExam.score : "-";
+    var status = data.statusKKM || "Proses";
+    var time = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+    
+    // Cari baris jika siswa sudah ada (update) atau tambah baru
+    var rows = sheet.getDataRange().getValues();
+    var foundIndex = -1;
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][1] == name && rows[i][2] == rombel) {
+        foundIndex = i + 1;
+        break;
+      }
+    }
+    
+    var rowData = [time, name, rombel, s1, s2, s3, s4, s5, s6, fe, status];
+    if (foundIndex > 0) {
+      sheet.getRange(foundIndex, 1, 1, 11).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+  }
+  return ContentService.createTextOutput(JSON.stringify({result: "success"})).setMimeType(ContentService.MimeType.JSON);
+}
+            </pre>
+          </div>
+
+          <ol start="4" class="list-decimal list-inside space-y-1 text-[11px] text-slate-600 leading-relaxed">
+            <li>Klik tombol biru <b>Terapkan (Deploy)</b> &gt; <b>Penerapan baru (New deployment)</b>.</li>
+            <li>Pilih jenis <b>Aplikasi Web (Web App)</b>.</li>
+            <li>Ubah <b>Yang memiliki akses (Who has access)</b> menjadi: <b>Siapa saja (Anyone)</b>.</li>
+            <li>Klik <b>Terapkan</b>, salin <b>URL Aplikasi Web</b>, dan tempel pada kolom di atas!</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-200 flex justify-end space-x-2">
+        <button onclick="toggleSheetConfigModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+          Batal
+        </button>
+        <button onclick="saveSheetConfig()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow">
+          Simpan URL Spreadsheet
+        </button>
       </div>
     </div>
   </div>
@@ -1970,10 +2188,23 @@
     let quizTimeRemaining = 0;
     let activeReviewData = null;
     let studentPendingDelete = null;
+    let cachedCloudStudents = {};
+    let liveUnsubscribe = null;
+    let sheetWebhookUrl = localStorage.getItem("kik_sheet_webhook_url") || "";
 
     function initApp() {
       // Setup Anti-Cheat Protection
       setupAntiCheatProtection();
+
+      // Setup Cloud Listener saat siap
+      window.addEventListener('cloud-sync-ready', () => {
+        setupCloudLiveSync();
+      });
+
+      // Jika cloud sudah siap sebelum event terpasang
+      if (window.cloudServices && window.cloudServices.isReady()) {
+        setupCloudLiveSync();
+      }
 
       // Check Active Session
       const savedUserJson = localStorage.getItem("kik_active_student");
@@ -1991,6 +2222,44 @@
       } else {
         navigate("login");
       }
+    }
+
+    function setupCloudLiveSync() {
+      if (!window.cloudServices || !window.cloudServices.isReady()) return;
+      if (liveUnsubscribe) liveUnsubscribe();
+
+      liveUnsubscribe = window.cloudServices.listenToAllStudents((data) => {
+        cachedCloudStudents = data || {};
+        
+        // Simpan cache lokal sebagai backup offline
+        try {
+          const localReg = getStoredStudents();
+          const merged = { ...localReg, ...cachedCloudStudents };
+          localStorage.setItem("kik_students_registry", JSON.stringify(merged));
+        } catch(e) {}
+
+        // Sinkronisasi data user aktif jika sedang login
+        if (currentUser && cachedCloudStudents[currentUser.key]) {
+          currentUser = cachedCloudStudents[currentUser.key];
+          localStorage.setItem("kik_active_student", JSON.stringify(currentUser));
+          updateMetricsDisplay();
+          renderTopicCards();
+        }
+
+        // Jika halaman admin guru sedang aktif, render ulang tabelnya secara live
+        const adminView = document.getElementById("view-admin");
+        if (adminView && !adminView.classList.contains("hidden")) {
+          renderAdminTable();
+        }
+      }, (err) => {
+        console.warn("Sinkronisasi cloud berjalan offline:", err);
+      });
+    }
+
+    function refreshCloudDataManual() {
+      setupCloudLiveSync();
+      renderAdminTable();
+      showToast("Data tersinkronkan dengan server cloud.", "success");
     }
 
     /* ===============================================================
@@ -2028,6 +2297,10 @@
        AUTHENTICATION & DATA REPOSITORY
        =============================================================== */
     function getStoredStudents() {
+      // Prioritaskan cache dari cloud jika tersedia
+      if (Object.keys(cachedCloudStudents).length > 0) {
+        return cachedCloudStudents;
+      }
       const data = localStorage.getItem("kik_students_registry");
       return data ? JSON.parse(data) : {};
     }
@@ -2036,7 +2309,7 @@
       localStorage.setItem("kik_students_registry", JSON.stringify(students));
     }
 
-    function handleStudentLogin(e) {
+    async function handleStudentLogin(e) {
       e.preventDefault();
       const nameInput = document.getElementById("loginName").value.trim();
       const classSelect = document.getElementById("loginClass").value;
@@ -2046,7 +2319,8 @@
         return;
       }
 
-      const studentKey = `${nameInput.toLowerCase()}_${classSelect.toLowerCase().replace(/\s+/g, "")}`;
+      // Format key unik siswa berdasarkan nama dan kelas
+      const studentKey = `${nameInput.toLowerCase().replace(/[^a-z0-9]/g, "")}_${classSelect.toLowerCase().replace(/\s+/g, "")}`;
       const registry = getStoredStudents();
 
       if (!registry[studentKey]) {
@@ -2063,6 +2337,14 @@
 
       currentUser = registry[studentKey];
       localStorage.setItem("kik_active_student", JSON.stringify(currentUser));
+
+      // Kirim record login ke cloud secara online jika ada
+      if (window.cloudServices && window.cloudServices.isReady()) {
+        await window.cloudServices.saveStudentCloud(studentKey, currentUser);
+      }
+
+      // Kirim data ke Google Spreadsheet jika terkonfigurasi
+      sendToSpreadsheet("sync_student", currentUser);
 
       showUserInterface();
       renderTopicCards();
@@ -2572,7 +2854,7 @@
       document.getElementById("submitQuizConfirmModal").classList.remove("flex");
     }
 
-    function executeFinalQuizSubmit() {
+    async function executeFinalQuizSubmit() {
       closeSubmitQuizConfirmModal();
       if (quizTimerInterval) clearInterval(quizTimerInterval);
 
@@ -2603,12 +2885,13 @@
 
       // Update Database Siswa
       const registry = getStoredStudents();
-      const studentRecord = registry[currentUser.key];
+      const studentRecord = registry[currentUser.key] || currentUser;
 
       if (currentQuizContext.type === "tp") {
         const tpId = currentQuizContext.id;
-        const previousAttempts = (studentRecord.scores[tpId] && studentRecord.scores[tpId].attempts) || 0;
+        const previousAttempts = (studentRecord.scores && studentRecord.scores[tpId] && studentRecord.scores[tpId].attempts) || 0;
 
+        if (!studentRecord.scores) studentRecord.scores = {};
         studentRecord.scores[tpId] = {
           score: finalGrade,
           passed: isPassed,
@@ -2631,6 +2914,22 @@
       saveStoredStudents(registry);
       currentUser = studentRecord;
       localStorage.setItem("kik_active_student", JSON.stringify(currentUser));
+
+      // Kirim rekaman hasil kuis ke Google Spreadsheet
+      const allTPPassed = TOPICS_DATA.every(t => currentUser.scores[t.id] && currentUser.scores[t.id].passed);
+      const statusKetuntasan = allTPPassed && (currentUser.finalExam && currentUser.finalExam.passed)
+        ? "TUNTAS KKM PENUH"
+        : isPassed ? "Tuntas KKM" : "Belum KKM (Remedial)";
+
+      sendToSpreadsheet("quiz_submitted", currentUser, statusKetuntasan);
+
+      // SINKRONISASI DATA HASIL KE CLOUD SECARA INSTAN
+      if (window.cloudServices && window.cloudServices.isReady()) {
+        const savedOnline = await window.cloudServices.saveStudentCloud(currentUser.key, currentUser);
+        if (savedOnline) {
+          showToast("Jawaban & nilai berhasil tersimpan di server cloud Bu Fitri!", "success");
+        }
+      }
 
       // Siapkan Data Pembahasan Jawaban
       activeReviewData = {
@@ -2821,6 +3120,7 @@
     function verifyAdminPIN() {
       const pin = document.getElementById("adminPinInput").value;
       if (pin === "guru123" || pin === "kikblitar" || pin === "1992" || pin === "123456") {
+        sessionStorage.setItem("kik_admin_authenticated", "true");
         toggleAdminModal();
         renderAdminTable();
         navigate("admin");
@@ -2828,6 +3128,12 @@
       } else {
         showToast("PIN akses tidak valid! Akses ditolak.", "error");
       }
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem("kik_admin_authenticated");
+      navigate("home");
+      showToast("Sesi guru berhasil dikunci dan keluar dengan aman.", "info");
     }
 
     function renderAdminTable() {
@@ -2928,13 +3234,20 @@
       modal.classList.remove("flex");
     }
 
-    function confirmExecuteDeleteStudent() {
+    async function confirmExecuteDeleteStudent() {
       if (!studentPendingDelete) return;
 
       const registry = getStoredStudents();
       const targetName = registry[studentPendingDelete] ? registry[studentPendingDelete].name : "Siswa";
+      
+      // Hapus di cloud jika tersedia
+      if (window.cloudServices && window.cloudServices.isReady()) {
+        await window.cloudServices.deleteStudentCloud(studentPendingDelete);
+      }
+
       delete registry[studentPendingDelete];
       saveStoredStudents(registry);
+      delete cachedCloudStudents[studentPendingDelete];
 
       // Jika siswa yang sedang login dihapus oleh guru
       if (currentUser && currentUser.key === studentPendingDelete) {
@@ -2943,7 +3256,7 @@
 
       closeDeleteConfirmModal();
       renderAdminTable();
-      showToast(`Data nilai ${targetName} berhasil dihapus dari sistem.`, "success");
+      showToast(`Data nilai ${targetName} berhasil dihapus dari cloud & sistem.`, "success");
     }
 
     /* ===============================================================
@@ -2988,39 +3301,86 @@
     }
 
     /* ===============================================================
-       TOAST NOTIFICATION COMPONENT
+       INTEGRASI GOOGLE SPREADSHEET (APPS SCRIPT WEBHOOK)
        =============================================================== */
-    let toastTimeout = null;
-    function showToast(msg, type = "info") {
-      const toast = document.getElementById("toast");
-      const toastMsg = document.getElementById("toastMsg");
-      const toastIcon = document.getElementById("toastIcon");
-
-      if (toastTimeout) clearTimeout(toastTimeout);
-
-      toastMsg.textContent = msg;
-
-      if (type === "success") {
-        toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
-      } else if (type === "warning") {
-        toastIcon.className = "fa-solid fa-triangle-exclamation text-amber-400 text-lg";
-      } else if (type === "error") {
-        toastIcon.className = "fa-solid fa-circle-xmark text-rose-400 text-lg";
+    function toggleSheetConfigModal() {
+      const modal = document.getElementById("sheetConfigModal");
+      const input = document.getElementById("sheetWebhookUrlInput");
+      input.value = sheetWebhookUrl;
+      if (modal.classList.contains("hidden")) {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
       } else {
-        toastIcon.className = "fa-solid fa-circle-info text-sky-400 text-lg";
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
       }
-
-      toast.classList.remove("translate-y-24", "opacity-0");
-      toast.classList.add("translate-y-0", "opacity-100");
-
-      toastTimeout = setTimeout(() => {
-        toast.classList.remove("translate-y-0", "opacity-100");
-        toast.classList.add("translate-y-24", "opacity-0");
-      }, 3500);
     }
 
-    // Initialize application when DOM is ready
-    window.addEventListener("DOMContentLoaded", initApp);
+    function saveSheetConfig() {
+      const input = document.getElementById("sheetWebhookUrlInput");
+      sheetWebhookUrl = input.value.trim();
+      localStorage.setItem("kik_sheet_webhook_url", sheetWebhookUrl);
+      toggleSheetConfigModal();
+      showToast(sheetWebhookUrl ? "URL Google Spreadsheet berhasil disimpan!" : "URL Spreadsheet dihapus.", "success");
+    }
+
+    async function sendToSpreadsheet(action, studentData, statusKKM = "") {
+      if (!sheetWebhookUrl) return; // Jika belum dikonfigurasi, lewati tanpa error
+
+      try {
+        const payload = {
+          action: action,
+          student: studentData,
+          statusKKM: statusKKM
+        };
+
+        // Kirim via fetch no-cors dengan text/plain agar Google Apps Script doPost menerima payload JSON tanpa kendala CORS preflight
+        await fetch(sheetWebhookUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.warn("Gagal mengirim data ke spreadsheet:", err);
+      }
+    }
+
+    async function syncAllToSpreadsheet() {
+      if (!sheetWebhookUrl) {
+        toggleSheetConfigModal();
+        showToast("Atur URL Google Spreadsheet terlebih dahulu!", "warning");
+        return;
+      }
+
+      const registry = getStoredStudents();
+      const students = Object.values(registry);
+
+      if (students.length === 0) {
+        showToast("Belum ada data siswa untuk dikirim ke Spreadsheet.", "info");
+        return;
+      }
+
+      showToast("Sedang mengirim data seluruh siswa ke Spreadsheet...", "info");
+
+      let sentCount = 0;
+      for (const s of students) {
+        const allTPPassed = TOPICS_DATA.every(t => s.scores && s.scores[t.id] && s.scores[t.id].passed);
+        const statusKetuntasan = allTPPassed && (s.finalExam && s.finalExam.passed)
+          ? "TUNTAS KKM PENUH"
+          : allTPPassed ? "TP Tuntas" : "Belum KKM";
+
+        await sendToSpreadsheet("sync_student", s, statusKetuntasan);
+        sentCount++;
+      }
+
+      showToast(`Sukses mengirim ${sentCount} data siswa ke Google Spreadsheet!`, "success");
+    }
+
+    // Jalankan inisialisasi aplikasi saat seluruh dokumen siap
+    window.addEventListener("DOMContentLoaded", () => {
+      initApp();
+    });
   </script>
 </body>
 </html>
