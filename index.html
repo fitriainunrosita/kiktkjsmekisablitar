@@ -510,7 +510,7 @@
       </div>
       <div>
         <h3 class="text-base font-bold text-slate-900">Portal Guru Pengampu</h3>
-        <p class="text-xs text-slate-500 mt-1">Bu Fitri Ainun Rosita, S.Pd.<br>(Default PIN: <b>guru123</b> atau <b>1992</b>)</p>
+        <p class="text-xs text-slate-500 mt-1">Bu Fitri Ainun Rosita, S.Pd.<br><span class="text-[11px] text-slate-400">Khusus Pengajar & Administrator</span></p>
       </div>
       <input type="password" id="adminPinInput" placeholder="Ketik PIN..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-center font-mono text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-sky-500">
       <div class="flex space-x-2">
@@ -2826,7 +2826,7 @@
         navigate("admin");
         showToast("Portal Guru Pengampu Berhasil Dibuka.", "success");
       } else {
-        showToast("PIN Guru Pengampu salah! Default: 1992 / guru123", "error");
+        showToast("PIN akses tidak valid! Akses ditolak.", "error");
       }
     }
 
