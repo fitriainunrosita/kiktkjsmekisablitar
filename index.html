@@ -682,7 +682,7 @@
       <p class="text-xs text-slate-600 mb-3 leading-relaxed">
         Masukkan URL Web App Google Apps Script (berakhiran <code>/exec</code>) agar seluruh akun dan nilai siswa tersimpan otomatis dan dapat ditarik dari perangkat mana saja.
       </p>
-      <input type="url" id="sheetWebhookInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4">
+      <input type="url" id="sheetWebhookInput" placeholder="https://script.google.com/macros/s/AKfycbwZUlailJK_k6TQ1DTzNad8Sr_-_mEXWCks8K8yixk3ih0vxmszIAAIG7GMfvaBN42Qjw/exec" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4">
       <div class="flex justify-end space-x-2">
         <button onclick="closeSheetConfigModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-600">Tutup</button>
         <button onclick="saveSheetWebhookUrl()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow">Simpan Koneksi</button>
@@ -694,7 +694,7 @@
   <script>
     const KKM_SCORE = 75;
     const MAX_REMEDIAL_COUNT = 2;
-    const DEFAULT_SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbx_GANTI_DENGAN_ID_DEPLOY_APPSCRIPT_ANDA_DISINI/exec";
+    const DEFAULT_SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbwZUlailJK_k6TQ1DTzNad8Sr_-_mEXWCks8K8yixk3ih0vxmszIAAIG7GMfvaBN42Qjw/exec";
 
     function getActiveSpreadsheetUrl() {
       const saved = localStorage.getItem('kik_sheet_webhook_url');
