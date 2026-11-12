@@ -190,38 +190,83 @@
   <!-- ================= MAIN CONTAINER ================= -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
 
-    <!-- VIEW 1: AUTHENTICATION / LOGIN SISWA -->
-    <div id="view-login" class="max-w-md mx-auto my-8 sm:my-12 transition-all duration-500">
+    <!-- VIEW 1: AUTHENTICATION / LOGIN & REGISTER SISWA -->
+    <div id="view-login" class="max-w-md mx-auto my-6 sm:my-10 transition-all duration-500">
       <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-200 relative overflow-hidden">
         <div class="absolute -right-8 -top-8 w-32 h-32 bg-sky-100 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="text-center mb-6">
-          <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-sky-50 text-sky-600 mb-3 border border-sky-100">
-            <i class="fa-solid fa-laptop-code text-3xl"></i>
+        <div class="text-center mb-5">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-sky-50 text-sky-600 mb-2.5 border border-sky-100">
+            <i class="fa-solid fa-laptop-code text-2xl"></i>
           </div>
           <h2 class="text-2xl font-bold font-display text-slate-900">Media Pembelajaran KIK</h2>
           <p class="text-xs text-sky-700 font-semibold mt-1">Pengampu: Bu Fitri Ainun Rosita, S.Pd.</p>
           <p class="text-[11px] text-slate-500">SMKS Islam 1 Kota Blitar • Fase F (Kelas XI TKJ)</p>
         </div>
 
-        <form onsubmit="handleStudentLogin(event)" class="space-y-4">
+        <!-- Tab Switcher Masuk vs Daftar Akun -->
+        <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl mb-5 border border-slate-200">
+          <button type="button" id="tabBtnLogin" onclick="switchAuthTab('login')" class="py-2 rounded-lg text-xs font-bold bg-white text-sky-700 shadow-sm transition">
+            <i class="fa-solid fa-right-to-bracket mr-1"></i> Masuk Akun
+          </button>
+          <button type="button" id="tabBtnRegister" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+            <i class="fa-solid fa-user-plus mr-1"></i> Daftar Baru
+          </button>
+        </div>
+
+        <!-- FORM 1: LOGIN (EMAIL & PASSWORD) -->
+        <form id="formStudentLogin" onsubmit="handleStudentLogin(event)" class="space-y-4">
           <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Nama Lengkap Siswa</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Email Terdaftar</label>
             <div class="relative">
               <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                <i class="fa-regular fa-user"></i>
+                <i class="fa-regular fa-envelope"></i>
               </span>
-              <input type="text" id="loginName" required placeholder="Ketik nama lengkapmu..." 
+              <input type="email" id="loginEmail" required placeholder="contoh: nama@gmail.com" 
                 class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
             </div>
           </div>
 
           <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Pilih Rombongan Belajar (Kelas)</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Password</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                <i class="fa-solid fa-key"></i>
+              </span>
+              <input type="password" id="loginPassword" required placeholder="Masukkan password akunmu..." 
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+            </div>
+          </div>
+
+          <button type="submit" id="btnLoginSubmit" class="w-full mt-2 py-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-sky-600/30 transition transform active:scale-95 flex items-center justify-center space-x-2">
+            <span>Masuk & Mulai Belajar</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+
+          <p class="text-center text-xs text-slate-500 pt-1">
+            Belum punya akun? <button type="button" onclick="switchAuthTab('register')" class="text-sky-600 font-bold hover:underline">Daftar sekarang di sini</button>
+          </p>
+        </form>
+
+        <!-- FORM 2: REGISTER (NAMA, KELAS, EMAIL, PASSWORD) -->
+        <form id="formStudentRegister" onsubmit="handleStudentRegister(event)" class="hidden space-y-3.5">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Nama Lengkap Pemilik Akun</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                <i class="fa-regular fa-user"></i>
+              </span>
+              <input type="text" id="regName" required placeholder="Nama lengkap sesuai absen..." 
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Pilih Kelas (Rombel)</label>
             <div class="relative">
               <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
                 <i class="fa-solid fa-chalkboard-user"></i>
               </span>
-              <select id="loginClass" required class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm bg-white">
+              <select id="regClass" required class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm bg-white">
                 <option value="" disabled selected>-- Pilih Kelas TKJ --</option>
                 <option value="XI TKJ 1">XI TKJ 1</option>
                 <option value="XI TKJ 2">XI TKJ 2</option>
@@ -230,13 +275,39 @@
             </div>
           </div>
 
-          <button type="submit" id="btnLoginSubmit" class="w-full mt-2 py-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-sky-600/30 transition transform active:scale-95 flex items-center justify-center space-x-2">
-            <span>Mulai Petualangan Belajar</span>
-            <i class="fa-solid fa-arrow-right"></i>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Email (Untuk Login)</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                <i class="fa-regular fa-envelope"></i>
+              </span>
+              <input type="email" id="regEmail" required placeholder="contoh: siswa@gmail.com" 
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Buat Password</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                <i class="fa-solid fa-lock"></i>
+              </span>
+              <input type="password" id="regPassword" required minlength="4" placeholder="Minimal 4 karakter..." 
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+            </div>
+          </div>
+
+          <button type="submit" id="btnRegisterSubmit" class="w-full mt-2 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition transform active:scale-95 flex items-center justify-center space-x-2">
+            <span>Simpan Akun & Masuk</span>
+            <i class="fa-solid fa-check-circle"></i>
           </button>
+
+          <p class="text-center text-xs text-slate-500 pt-1">
+            Sudah punya akun? <button type="button" onclick="switchAuthTab('login')" class="text-sky-600 font-bold hover:underline">Masuk menggunakan email</button>
+          </p>
         </form>
 
-        <div class="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+        <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
           <span>Standar KKM: <b>75 Poin</b></span>
           <span>Semester Ganjil</span>
         </div>
@@ -259,7 +330,8 @@
             Kreativitas & Inovasi: Dari Alat IoT Hingga Web Edukasi
           </h1>
           <p class="mt-3 text-slate-300 text-xs sm:text-sm leading-relaxed">
-            Selamat datang, <b id="bannerStudentName" class="text-sky-300"></b>! Asah ide orisinalmu menjadi produk nyata solutif. Selesaikan materi secara berurutan dengan standar ketuntasan <b>KKM 75</b>.
+            Selamat datang, <b id="bannerStudentName" class="text-sky-300"></b>! <span id="bannerStudentEmail" class="text-slate-400 text-xs"></span><br>
+            Asah ide orisinalmu menjadi produk nyata solutif. Selesaikan materi secara berurutan dengan standar ketuntasan <b>KKM 75</b>.
           </p>
 
           <div class="mt-6 flex flex-wrap gap-3">
@@ -475,7 +547,7 @@
             <thead>
               <tr class="bg-slate-100 border-b border-slate-200 text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
                 <th class="p-3.5">No</th>
-                <th class="p-3.5">Nama Siswa</th>
+                <th class="p-3.5">Nama & Email Pemilik Akun</th>
                 <th class="p-3.5">Kelas</th>
                 <th class="p-3.5 text-center">TP 1.1</th>
                 <th class="p-3.5 text-center">TP 1.2</th>
@@ -586,7 +658,7 @@
       </div>
       <h3 class="text-base font-bold text-slate-900">Hapus Data Siswa?</h3>
       <p class="text-xs text-slate-600 mt-2">
-        Data progres dan nilai milik <b id="deleteStudentTargetName" class="text-rose-600">Siswa</b> akan dihapus permanen dari Dashboard Guru dan Google Spreadsheet.
+        Akun dan nilai milik <b id="deleteStudentTargetName" class="text-rose-600">Siswa</b> akan dihapus permanen dari Dashboard Guru dan Google Spreadsheet.
       </p>
       <div class="mt-5 flex space-x-2.5">
         <button onclick="closeDeleteModal()" class="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50">Batal</button>
@@ -608,7 +680,7 @@
         </button>
       </div>
       <p class="text-xs text-slate-600 mb-3 leading-relaxed">
-        Masukkan URL Web App Google Apps Script (berakhiran <code>/exec</code>) agar seluruh nilai siswa tersimpan otomatis dan dapat ditarik dari perangkat mana saja.
+        Masukkan URL Web App Google Apps Script (berakhiran <code>/exec</code>) agar seluruh akun dan nilai siswa tersimpan otomatis dan dapat ditarik dari perangkat mana saja.
       </p>
       <input type="url" id="sheetWebhookInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4">
       <div class="flex justify-end space-x-2">
@@ -622,7 +694,7 @@
   <script>
     const KKM_SCORE = 75;
     const MAX_REMEDIAL_COUNT = 2;
-    const DEFAULT_SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbwC7AEv5kcMZZn4Mmv7qSWV4SP_8IxG6LZsWHljbyxRNMpjqHtI04oJV1bUXtD3FP0V8Q/exec";
+    const DEFAULT_SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbx_GANTI_DENGAN_ID_DEPLOY_APPSCRIPT_ANDA_DISINI/exec";
 
     function getActiveSpreadsheetUrl() {
       const saved = localStorage.getItem('kik_sheet_webhook_url');
@@ -891,13 +963,21 @@
     let studentKeyToDelete = null;
     let lastEvaluatedTopicKey = null;
 
-    function makeStudentKey(name, rombel) {
-      return `${rombel.trim().toUpperCase()}__${name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+    function makeStudentKeyByEmail(email) {
+      return `USER__${email.trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    }
+
+    function encodePassword(rawPwd) {
+      try {
+        return btoa(unescape(encodeURIComponent(rawPwd.trim())));
+      } catch (e) {
+        return rawPwd.trim();
+      }
     }
 
     function loadLocalRegistry() {
       try {
-        const raw = localStorage.getItem('kik_students_registry_v2');
+        const raw = localStorage.getItem('kik_students_registry_v3');
         if (raw) allStudentsRegistry = JSON.parse(raw);
       } catch (e) {
         allStudentsRegistry = {};
@@ -906,7 +986,7 @@
 
     function saveLocalRegistry() {
       try {
-        localStorage.setItem('kik_students_registry_v2', JSON.stringify(allStudentsRegistry));
+        localStorage.setItem('kik_students_registry_v3', JSON.stringify(allStudentsRegistry));
       } catch (e) {
         console.warn("Local storage write error:", e);
       }
@@ -923,8 +1003,8 @@
     }
 
     async function syncStudentRecordEverywhere(studentObj) {
-      if (!studentObj) return;
-      const key = makeStudentKey(studentObj.name, studentObj.rombel);
+      if (!studentObj || !studentObj.email) return;
+      const key = makeStudentKeyByEmail(studentObj.email);
       studentObj.updatedAt = new Date().toISOString();
       allStudentsRegistry[key] = studentObj;
       saveLocalRegistry();
@@ -968,8 +1048,8 @@
         const json = JSON.parse(text);
         if (json && json.status === 'success' && Array.isArray(json.students)) {
           json.students.forEach(remoteSt => {
-            if (!remoteSt.name || !remoteSt.rombel) return;
-            const k = makeStudentKey(remoteSt.name, remoteSt.rombel);
+            if (!remoteSt.email || !remoteSt.name) return;
+            const k = makeStudentKeyByEmail(remoteSt.email);
             const localSt = allStudentsRegistry[k];
             if (!localSt) {
               allStudentsRegistry[k] = remoteSt;
@@ -977,6 +1057,7 @@
               allStudentsRegistry[k] = {
                 ...localSt,
                 ...remoteSt,
+                passwordHash: remoteSt.passwordHash || localSt.passwordHash,
                 studiedMaterials: { ...(localSt.studiedMaterials || {}), ...(remoteSt.studiedMaterials || {}) },
                 scores: { ...(localSt.scores || {}), ...(remoteSt.scores || {}) },
                 finalExam: remoteSt.finalExam || localSt.finalExam
@@ -984,18 +1065,137 @@
             }
           });
           saveLocalRegistry();
-          if (currentStudent) {
-            const myKey = makeStudentKey(currentStudent.name, currentStudent.rombel);
+          if (currentStudent && currentStudent.email) {
+            const myKey = makeStudentKeyByEmail(currentStudent.email);
             if (allStudentsRegistry[myKey]) {
               currentStudent = allStudentsRegistry[myKey];
               renderDashboard();
             }
           }
           renderAdminTable();
-          if (showNotification) showToast('Data berhasil disinkronkan dari Google Spreadsheet!', 'success');
+          if (showNotification) showToast('Data akun & nilai berhasil disinkronkan!', 'success');
         }
       } catch (e) {
         if (showNotification) showToast('Gagal menarik data dari Spreadsheet. Pastikan script sudah di-deploy (Anyone).', 'error');
+      }
+    }
+
+    function switchAuthTab(mode) {
+      const formLogin = document.getElementById('formStudentLogin');
+      const formReg = document.getElementById('formStudentRegister');
+      const tabLogin = document.getElementById('tabBtnLogin');
+      const tabReg = document.getElementById('tabBtnRegister');
+
+      if (mode === 'register') {
+        formLogin.classList.add('hidden');
+        formReg.classList.remove('hidden');
+        tabReg.className = 'py-2 rounded-lg text-xs font-bold bg-white text-emerald-700 shadow-sm transition';
+        tabLogin.className = 'py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition';
+      } else {
+        formReg.classList.add('hidden');
+        formLogin.classList.remove('hidden');
+        tabLogin.className = 'py-2 rounded-lg text-xs font-bold bg-white text-sky-700 shadow-sm transition';
+        tabReg.className = 'py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition';
+      }
+    }
+
+    function applyLoggedInSession(studentRecord) {
+      currentStudent = studentRecord;
+      document.getElementById('navUserName').textContent = currentStudent.name;
+      document.getElementById('navUserClass').textContent = currentStudent.rombel;
+      document.getElementById('navBrandSubtitle').textContent = `SMKS Islam 1 Kota Blitar • ${currentStudent.rombel}`;
+      document.getElementById('bannerStudentName').textContent = `${currentStudent.name} (${currentStudent.rombel})`;
+      document.getElementById('bannerStudentEmail').textContent = `• Akun: ${currentStudent.email}`;
+
+      const userBadge = document.getElementById('userBadge');
+      userBadge.classList.remove('hidden');
+      userBadge.classList.add('flex');
+      document.getElementById('logoutBtn').classList.remove('hidden');
+
+      renderDashboard();
+      navigate('home');
+    }
+
+    async function handleStudentRegister(e) {
+      e.preventDefault();
+      const nameInput = document.getElementById('regName').value.trim();
+      const classInput = document.getElementById('regClass').value;
+      const emailInput = document.getElementById('regEmail').value.trim().toLowerCase();
+      const pwdInput = document.getElementById('regPassword').value;
+
+      if (!nameInput || !classInput || !emailInput || !pwdInput) return;
+
+      const btn = document.getElementById('btnRegisterSubmit');
+      if (btn) btn.disabled = true;
+
+      try {
+        loadLocalRegistry();
+        await syncFromGoogleSheet(false);
+
+        const key = makeStudentKeyByEmail(emailInput);
+        if (allStudentsRegistry[key]) {
+          showToast('Email ini sudah terdaftar! Silakan langsung masuk di tab Masuk Akun.', 'warn');
+          document.getElementById('loginEmail').value = emailInput;
+          switchAuthTab('login');
+          return;
+        }
+
+        const newStudent = {
+          name: nameInput,
+          rombel: classInput,
+          email: emailInput,
+          passwordHash: encodePassword(pwdInput),
+          studiedMaterials: {},
+          scores: {},
+          finalExam: null,
+          updatedAt: new Date().toISOString()
+        };
+
+        await syncStudentRecordEverywhere(newStudent);
+        applyLoggedInSession(newStudent);
+        showToast(`Akun berhasil dibuat! Selamat datang, ${newStudent.name}.`, 'success');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function handleStudentLogin(e) {
+      e.preventDefault();
+      const emailInput = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const pwdInput = document.getElementById('loginPassword').value;
+
+      if (!emailInput || !pwdInput) return;
+
+      const btn = document.getElementById('btnLoginSubmit');
+      if (btn) btn.disabled = true;
+
+      try {
+        loadLocalRegistry();
+        await syncFromGoogleSheet(false);
+
+        const key = makeStudentKeyByEmail(emailInput);
+        const existingUser = allStudentsRegistry[key];
+
+        if (!existingUser) {
+          showToast('Email belum terdaftar. Silakan daftar akun terlebih dahulu!', 'error');
+          document.getElementById('regEmail').value = emailInput;
+          switchAuthTab('register');
+          return;
+        }
+
+        const inputHash = encodePassword(pwdInput);
+        if (existingUser.passwordHash && existingUser.passwordHash !== inputHash) {
+          showToast('Password salah! Periksa kembali password akunmu.', 'error');
+          return;
+        }
+
+        if (!existingUser.studiedMaterials) existingUser.studiedMaterials = {};
+        if (!existingUser.scores) existingUser.scores = {};
+
+        applyLoggedInSession(existingUser);
+        showToast(`Selamat datang kembali, ${existingUser.name} (${existingUser.rombel})!`, 'success');
+      } finally {
+        if (btn) btn.disabled = false;
       }
     }
 
@@ -1014,55 +1214,6 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    async function handleStudentLogin(e) {
-      e.preventDefault();
-      const nameInput = document.getElementById('loginName').value.trim();
-      const classInput = document.getElementById('loginClass').value;
-
-      if (!nameInput || !classInput) return;
-
-      const btn = document.getElementById('btnLoginSubmit');
-      if (btn) btn.disabled = true;
-
-      try {
-        const key = makeStudentKey(nameInput, classInput);
-        loadLocalRegistry();
-        await syncFromGoogleSheet(false);
-
-        if (!allStudentsRegistry[key]) {
-          allStudentsRegistry[key] = {
-            name: nameInput,
-            rombel: classInput,
-            studiedMaterials: {},
-            scores: {},
-            finalExam: null,
-            updatedAt: new Date().toISOString()
-          };
-        } else if (!allStudentsRegistry[key].studiedMaterials) {
-          allStudentsRegistry[key].studiedMaterials = {};
-        }
-
-        currentStudent = allStudentsRegistry[key];
-        await syncStudentRecordEverywhere(currentStudent);
-
-        document.getElementById('navUserName').textContent = currentStudent.name;
-        document.getElementById('navUserClass').textContent = currentStudent.rombel;
-        document.getElementById('navBrandSubtitle').textContent = `SMKS Islam 1 Kota Blitar • ${currentStudent.rombel}`;
-        document.getElementById('bannerStudentName').textContent = `${currentStudent.name} (${currentStudent.rombel})`;
-
-        const userBadge = document.getElementById('userBadge');
-        userBadge.classList.remove('hidden');
-        userBadge.classList.add('flex');
-        document.getElementById('logoutBtn').classList.remove('hidden');
-
-        renderDashboard();
-        navigate('home');
-        showToast(`Selamat belajar, ${currentStudent.name}!`, 'success');
-      } finally {
-        if (btn) btn.disabled = false;
-      }
-    }
-
     function logout() {
       currentStudent = null;
       const userBadge = document.getElementById('userBadge');
@@ -1070,10 +1221,10 @@
       userBadge.classList.remove('flex');
       document.getElementById('logoutBtn').classList.add('hidden');
       document.getElementById('navBrandSubtitle').textContent = 'SMKS Islam 1 Kota Blitar • XI TKJ';
-      document.getElementById('loginName').value = '';
-      document.getElementById('loginClass').value = '';
+      document.getElementById('loginPassword').value = '';
+      switchAuthTab('login');
       navigate('login');
-      showToast('Berhasil keluar dari sesi siswa.', 'success');
+      showToast('Berhasil keluar dari akun siswa.', 'success');
     }
 
     function scrollToModules() {
@@ -1487,7 +1638,7 @@
       });
 
       if (keys.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400">Belum ada data siswa yang tercatat pada filter ini.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400">Belum ada akun siswa yang tercatat pada filter ini.</td></tr>`;
         return;
       }
 
@@ -1503,7 +1654,10 @@
         tr.className = 'hover:bg-slate-50 transition';
         tr.innerHTML = `
           <td class="p-3.5 text-slate-500 font-semibold">${idx + 1}</td>
-          <td class="p-3.5 font-bold text-slate-900">${st.name}</td>
+          <td class="p-3.5">
+            <span class="font-bold text-slate-900 block">${st.name}</span>
+            <span class="text-[11px] text-slate-400">${st.email || '-'}</span>
+          </td>
           <td class="p-3.5"><span class="px-2 py-0.5 rounded bg-sky-50 text-sky-700 font-bold">${st.rombel}</span></td>
           <td class="p-3.5 text-center">${formatScoreCell(sc.tp1_1)}</td>
           <td class="p-3.5 text-center">${formatScoreCell(sc.tp1_2)}</td>
@@ -1514,7 +1668,7 @@
           <td class="p-3.5 text-center">${formatScoreCell(st.finalExam)}</td>
           <td class="p-3.5 text-center">${statusBadge}</td>
           <td class="p-3.5 text-center">
-            <button onclick="openDeleteStudentModal('${k}')" title="Hapus Data Siswa" class="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition">
+            <button onclick="openDeleteStudentModal('${k}')" title="Hapus Akun Siswa" class="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition">
               <i class="fa-solid fa-trash-can"></i>
             </button>
           </td>
@@ -1527,7 +1681,7 @@
       const st = allStudentsRegistry[studentKey];
       if (!st) return;
       studentKeyToDelete = studentKey;
-      document.getElementById('deleteStudentTargetName').textContent = `${st.name} (${st.rombel})`;
+      document.getElementById('deleteStudentTargetName').textContent = `${st.name} (${st.rombel} • ${st.email || ''})`;
       document.getElementById('deleteConfirmModal').classList.remove('hidden');
     }
 
@@ -1559,7 +1713,7 @@
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
               action: 'delete_student',
-              student: { name: targetStudent.name, rombel: targetStudent.rombel }
+              student: { name: targetStudent.name, rombel: targetStudent.rombel, email: targetStudent.email }
             })
           });
         } catch (e) {
@@ -1567,7 +1721,7 @@
         }
       }
 
-      showToast('Data siswa berhasil dihapus dari dashboard & spreadsheet.', 'success');
+      showToast('Akun & data siswa berhasil dihapus dari dashboard & spreadsheet.', 'success');
     }
 
     function openSheetConfigModal() {
@@ -1592,7 +1746,7 @@
     }
 
     function exportAdminCSV() {
-      const headers = ['No', 'Nama Siswa', 'Kelas', 'TP 1.1', 'TP 1.2', 'TP 1.3', 'TP 1.4', 'TP 2.1(a)', 'TP 2.1(b)', 'Final Exam', 'Status KKM'];
+      const headers = ['No', 'Nama Lengkap', 'Kelas', 'Email Akun', 'TP 1.1', 'TP 1.2', 'TP 1.3', 'TP 1.4', 'TP 2.1(a)', 'TP 2.1(b)', 'Final Exam', 'Status KKM'];
       const rows = [headers.join(',')];
 
       const keys = Object.keys(allStudentsRegistry);
@@ -1604,6 +1758,7 @@
           idx + 1,
           `"${st.name}"`,
           `"${st.rombel}"`,
+          `"${st.email || '-'}"`,
           sc.tp1_1 ? sc.tp1_1.score : '-',
           sc.tp1_2 ? sc.tp1_2.score : '-',
           sc.tp1_3 ? sc.tp1_3.score : '-',
