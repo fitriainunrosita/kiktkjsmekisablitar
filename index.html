@@ -504,9 +504,9 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
-          <button onclick="syncFromGoogleSheet(true)" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow">
-            <i class="fa-solid fa-rotate"></i>
-            <span>Tarik Data Cloud/Sheet</span>
+          <button onclick="syncFromGoogleSheet(true)" id="btnSyncSheetAdmin" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow">
+            <i class="fa-solid fa-rotate" id="iconSyncSheetAdmin"></i>
+            <span>Tarik Data Spreadsheet</span>
           </button>
           <button onclick="openSheetConfigModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow">
             <i class="fa-solid fa-table"></i>
@@ -680,12 +680,12 @@
         </button>
       </div>
       <p class="text-xs text-slate-600 mb-3 leading-relaxed">
-        Masukkan URL Web App Google Apps Script (berakhiran <code>/exec</code>) agar seluruh akun dan nilai siswa tersimpan otomatis dan dapat ditarik dari perangkat mana saja.
+        Masukkan URL Web App Google Apps Script (berakhiran <code>/exec</code>) agar seluruh akun dan nilai siswa tersimpan otomatis dan langsung tampil di Dashboard Guru dari perangkat mana saja.
       </p>
-      <input type="url" id="sheetWebhookInput" placeholder="https://script.google.com/macros/s/AKfycbwZUlailJK_k6TQ1DTzNad8Sr_-_mEXWCks8K8yixk3ih0vxmszIAAIG7GMfvaBN42Qjw/exec" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4">
+      <input type="url" id="sheetWebhookInput" placeholder="https://script.google.com/macros/s/AKfycbwEkPwXDy0KRKkExIIFjLXTY6li3V7_Cg1GtIitJjcsCp18pWWzwW78miZKeQRURsfEBQ/exec" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4">
       <div class="flex justify-end space-x-2">
         <button onclick="closeSheetConfigModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-600">Tutup</button>
-        <button onclick="saveSheetWebhookUrl()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow">Simpan Koneksi</button>
+        <button onclick="saveSheetWebhookUrl()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow">Simpan & Sinkronkan</button>
       </div>
     </div>
   </div>
@@ -694,13 +694,27 @@
   <script>
     const KKM_SCORE = 75;
     const MAX_REMEDIAL_COUNT = 2;
-    const DEFAULT_SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbwZUlailJK_k6TQ1DTzNad8Sr_-_mEXWCks8K8yixk3ih0vxmszIAAIG7GMfvaBN42Qjw/exec";
+    const DEFAULT_SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbwEkPwXDy0KRKkExIIFjLXTY6li3V7_Cg1GtIitJjcsCp18pWWzwW78miZKeQRURsfEBQ/exec";
 
     function getActiveSpreadsheetUrl() {
       const saved = localStorage.getItem('kik_sheet_webhook_url');
       if (saved && saved.startsWith('https://script.google.com/')) return saved.trim();
       if (DEFAULT_SPREADSHEET_URL && !DEFAULT_SPREADSHEET_URL.includes('GANTI_DENGAN_ID')) return DEFAULT_SPREADSHEET_URL.trim();
       return "";
+    }
+
+    function updateSheetConnectionStatusBadge() {
+      const badge = document.getElementById('sheetConnectionBadge');
+      if (!badge) return;
+      const url = getActiveSpreadsheetUrl();
+      if (url) {
+        badge.className = 'px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold';
+        badge.innerHTML = '<i class="fa-solid fa-cloud-check mr-1"></i> Terhubung ke Google Spreadsheet';
+      } else {
+        badge.className = 'px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 font-semibold cursor-pointer';
+        badge.onclick = openSheetConfigModal;
+        badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Klik untuk Set URL Spreadsheet';
+      }
     }
 
     document.addEventListener('contextmenu', (e) => {
@@ -963,8 +977,11 @@
     let studentKeyToDelete = null;
     let lastEvaluatedTopicKey = null;
 
-    function makeStudentKeyByEmail(email) {
-      return `USER__${email.trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    function makeStudentKey(studentObj) {
+      if (studentObj.email && studentObj.email.trim()) {
+        return `USER__${studentObj.email.trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+      }
+      return `USER_NAME__${(studentObj.name || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}__${(studentObj.rombel || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     }
 
     function encodePassword(rawPwd) {
@@ -1003,8 +1020,8 @@
     }
 
     async function syncStudentRecordEverywhere(studentObj) {
-      if (!studentObj || !studentObj.email) return;
-      const key = makeStudentKeyByEmail(studentObj.email);
+      if (!studentObj || !studentObj.name) return;
+      const key = makeStudentKey(studentObj);
       studentObj.updatedAt = new Date().toISOString();
       allStudentsRegistry[key] = studentObj;
       saveLocalRegistry();
@@ -1032,51 +1049,141 @@
       }
     }
 
+    function fetchSheetViaJsonp(sheetUrl) {
+      return new Promise((resolve, reject) => {
+        const cbName = `__kikSheetCb_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        const script = document.createElement('script');
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error('JSONP timeout'));
+        }, 12000);
+
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[cbName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[cbName] = (data) => {
+          cleanup();
+          resolve(data);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('JSONP script load failed'));
+        };
+
+        const separator = sheetUrl.includes('?') ? '&' : '?';
+        script.src = `${sheetUrl}${separator}action=get_all&callback=${cbName}&_t=${Date.now()}`;
+        document.body.appendChild(script);
+      });
+    }
+
+    function mergeRemoteStudentsIntoRegistry(studentsList) {
+      if (!Array.isArray(studentsList)) return;
+      studentsList.forEach(remoteSt => {
+        if (!remoteSt || !remoteSt.name) return;
+        const k = makeStudentKey(remoteSt);
+        const localSt = allStudentsRegistry[k];
+        if (!localSt) {
+          allStudentsRegistry[k] = {
+            name: remoteSt.name,
+            rombel: remoteSt.rombel || '-',
+            email: remoteSt.email || '',
+            passwordHash: remoteSt.passwordHash || '',
+            studiedMaterials: remoteSt.studiedMaterials || {},
+            scores: remoteSt.scores || {},
+            finalExam: remoteSt.finalExam || null
+          };
+        } else {
+          const mergedScores = { ...(localSt.scores || {}) };
+          if (remoteSt.scores) {
+            Object.keys(remoteSt.scores).forEach(tpKey => {
+              const rSc = remoteSt.scores[tpKey];
+              const lSc = mergedScores[tpKey];
+              if (!lSc || (rSc && rSc.score >= lSc.score)) {
+                mergedScores[tpKey] = {
+                  score: rSc.score,
+                  attempts: Math.max(rSc.attempts || 1, (lSc && lSc.attempts) || 1)
+                };
+              }
+            });
+          }
+
+          let mergedFinal = localSt.finalExam || null;
+          if (remoteSt.finalExam) {
+            if (!mergedFinal || remoteSt.finalExam.score >= mergedFinal.score) {
+              mergedFinal = {
+                score: remoteSt.finalExam.score,
+                attempts: Math.max(remoteSt.finalExam.attempts || 1, (mergedFinal && mergedFinal.attempts) || 1)
+              };
+            }
+          }
+
+          allStudentsRegistry[k] = {
+            ...localSt,
+            name: remoteSt.name || localSt.name,
+            rombel: remoteSt.rombel || localSt.rombel,
+            email: remoteSt.email || localSt.email,
+            passwordHash: remoteSt.passwordHash || localSt.passwordHash,
+            studiedMaterials: { ...(localSt.studiedMaterials || {}), ...(remoteSt.studiedMaterials || {}) },
+            scores: mergedScores,
+            finalExam: mergedFinal
+          };
+        }
+      });
+      saveLocalRegistry();
+    }
+
     async function syncFromGoogleSheet(showNotification = false) {
       const sheetUrl = getActiveSpreadsheetUrl();
       if (!sheetUrl) {
         if (showNotification) showToast('URL Google Spreadsheet belum dikonfigurasi.', 'warn');
         return;
       }
+
+      const syncIcon = document.getElementById('iconSyncSheetAdmin');
+      if (syncIcon) syncIcon.classList.add('fa-spin');
+
       try {
-        const res = await fetch(`${sheetUrl}?action=get_all&_t=${Date.now()}`, {
-          method: 'GET',
-          redirect: 'follow'
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const text = await res.text();
-        const json = JSON.parse(text);
-        if (json && json.status === 'success' && Array.isArray(json.students)) {
-          json.students.forEach(remoteSt => {
-            if (!remoteSt.email || !remoteSt.name) return;
-            const k = makeStudentKeyByEmail(remoteSt.email);
-            const localSt = allStudentsRegistry[k];
-            if (!localSt) {
-              allStudentsRegistry[k] = remoteSt;
-            } else {
-              allStudentsRegistry[k] = {
-                ...localSt,
-                ...remoteSt,
-                passwordHash: remoteSt.passwordHash || localSt.passwordHash,
-                studiedMaterials: { ...(localSt.studiedMaterials || {}), ...(remoteSt.studiedMaterials || {}) },
-                scores: { ...(localSt.scores || {}), ...(remoteSt.scores || {}) },
-                finalExam: remoteSt.finalExam || localSt.finalExam
-              };
-            }
+        let json = null;
+        try {
+          const separator = sheetUrl.includes('?') ? '&' : '?';
+          const res = await fetch(`${sheetUrl}${separator}action=get_all&_t=${Date.now()}`, {
+            method: 'GET',
+            redirect: 'follow'
           });
-          saveLocalRegistry();
-          if (currentStudent && currentStudent.email) {
-            const myKey = makeStudentKeyByEmail(currentStudent.email);
+          if (res.ok) {
+            const text = await res.text();
+            json = JSON.parse(text);
+          }
+        } catch (fetchErr) {
+          // Fallback ke JSONP apabila fetch terkena redirect CORS pada host publik
+          json = await fetchSheetViaJsonp(sheetUrl);
+        }
+
+        if (json && json.status === 'success' && Array.isArray(json.students)) {
+          mergeRemoteStudentsIntoRegistry(json.students);
+
+          if (currentStudent) {
+            const myKey = makeStudentKey(currentStudent);
             if (allStudentsRegistry[myKey]) {
               currentStudent = allStudentsRegistry[myKey];
               renderDashboard();
             }
           }
           renderAdminTable();
-          if (showNotification) showToast('Data akun & nilai berhasil disinkronkan!', 'success');
+          if (showNotification) showToast(`Berhasil memuat ${json.students.length} data siswa dari Google Spreadsheet!`, 'success');
+        } else {
+          throw new Error('Format respon spreadsheet tidak valid');
         }
       } catch (e) {
-        if (showNotification) showToast('Gagal menarik data dari Spreadsheet. Pastikan script sudah di-deploy (Anyone).', 'error');
+        if (showNotification) {
+          showToast('Gagal menarik data Spreadsheet. Pastikan Apps Script sudah di-Deploy versi terbaru (Anyone).', 'error');
+        }
+      } finally {
+        if (syncIcon) syncIcon.classList.remove('fa-spin');
       }
     }
 
@@ -1132,7 +1239,7 @@
         loadLocalRegistry();
         await syncFromGoogleSheet(false);
 
-        const key = makeStudentKeyByEmail(emailInput);
+        const key = makeStudentKey({ email: emailInput });
         if (allStudentsRegistry[key]) {
           showToast('Email ini sudah terdaftar! Silakan langsung masuk di tab Masuk Akun.', 'warn');
           document.getElementById('loginEmail').value = emailInput;
@@ -1173,7 +1280,7 @@
         loadLocalRegistry();
         await syncFromGoogleSheet(false);
 
-        const key = makeStudentKeyByEmail(emailInput);
+        const key = makeStudentKey({ email: emailInput });
         const existingUser = allStudentsRegistry[key];
 
         if (!existingUser) {
@@ -1592,10 +1699,11 @@
       if (pin === 'guru123' || pin === '1992') {
         document.getElementById('adminAuthModal').classList.add('hidden');
         loadLocalRegistry();
+        updateSheetConnectionStatusBadge();
         renderAdminTable();
         navigate('admin');
         showToast('Selamat datang, Bu Fitri Ainun Rosita, S.Pd.!', 'success');
-        await syncFromGoogleSheet(false);
+        await syncFromGoogleSheet(true);
       } else {
         showToast('PIN akses tidak valid! Akses ditolak.', 'error');
       }
@@ -1638,7 +1746,7 @@
       });
 
       if (keys.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400">Belum ada akun siswa yang tercatat pada filter ini.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400">Belum ada akun siswa yang tercatat pada filter ini. Klik <b>Tarik Data Spreadsheet</b> untuk memuat data terbaru.</td></tr>`;
         return;
       }
 
@@ -1740,6 +1848,7 @@
         return;
       }
       localStorage.setItem('kik_sheet_webhook_url', val);
+      updateSheetConnectionStatusBadge();
       closeSheetConfigModal();
       showToast('Koneksi Google Spreadsheet disimpan!', 'success');
       syncFromGoogleSheet(true);
@@ -1805,6 +1914,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalRegistry();
+      updateSheetConnectionStatusBadge();
       window.addEventListener('cloud-sync-ready', () => {
         if (window.cloudServices) {
           window.cloudServices.listenToAllStudents((cloudData) => {
